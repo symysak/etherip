@@ -91,9 +91,12 @@ static void *recv_handlar(void *args){
             }
         }
 
+        struct iphdr *ip_hdr;
+        ip_hdr = (struct iphdr *)buffer;
+        int ip_hdr_len = ip_hdr->ihl * 4;
 
         struct etherip_hdr *hdr;
-        hdr = (struct etherip_hdr *)buffer;
+        hdr = (struct etherip_hdr *)(buffer + ip_hdr_len);
 
         // version check
         uint8_t version = hdr->hdr_1st >> 4;
@@ -110,8 +113,8 @@ static void *recv_handlar(void *args){
             printf("reserved field is not 0\n");
             continue;
         }
-        
-        slen = tap_write(tap_fd, buffer, rlen);
+
+        slen = tap_write(tap_fd, hdr+ETHERIP_HEADER_LEN, rlen);
         if(slen == -1){
             // Failed to tap_write()
             return NULL;
