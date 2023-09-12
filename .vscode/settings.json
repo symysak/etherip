@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "if_tun.h": "c",
+        "*.o": "c",
+        "if.h": "c",
+        "stdio.h": "c",
+        "ioctl.h": "c",
+        "ip.h": "c",
+        "inet.h": "c",
+        "socket.h": "c"
+    }
+}
