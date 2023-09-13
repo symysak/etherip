@@ -34,10 +34,10 @@ extern int tap_open(int *fd, char name[], int mtu, int domain){
     }
 
     if(domain == AF_INET){
-        ifr.ifr_mtu = mtu - IPv4_HEADER_LEN - ETHERIP_HEADER_LEN;
+        ifr.ifr_mtu = mtu - IPv4_HEADER_LEN - ETHERIP_HEADER_LEN - ETHER_HEADER_LEN;
     }
     else if(domain == AF_INET6){
-        ifr.ifr_mtu = mtu - IPv6_HEADER_LEN - ETHERIP_HEADER_LEN;
+        ifr.ifr_mtu = mtu - IPv6_HEADER_LEN - ETHERIP_HEADER_LEN - ETHER_HEADER_LEN;
     }
     if(ioctl(socket(AF_INET, SOCK_DGRAM, 0), SIOCSIFMTU, &ifr) == -1){
         fprintf(stderr, "Failed to SIOCSIFMTU: %s\n", strerror(errno));

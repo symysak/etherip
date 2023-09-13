@@ -61,7 +61,7 @@ static void *recv_handlar(void *args){
     pthread_barrier_wait(&barrier);
 
     while(1){
-        ssize_t rlen, slen;
+        ssize_t rlen;
         uint8_t buffer[BUFFER_SIZE];
         struct sockaddr addr;
         socklen_t addr_len;
@@ -82,7 +82,6 @@ static void *recv_handlar(void *args){
         if(domain == AF_INET){
             if((size_t)rlen < sizeof(struct iphdr) + sizeof(struct etherip_hdr)){
                 // too short
-                printf("too short\n");
                 continue;
             }
 
@@ -103,7 +102,6 @@ static void *recv_handlar(void *args){
         else if(domain == AF_INET6){
             if((size_t)rlen < sizeof(struct ip6_hdr) + sizeof(struct etherip_hdr)){
                 // too short
-                printf("too short\n");
                 continue;
             }
 
@@ -126,7 +124,6 @@ static void *recv_handlar(void *args){
         version = hdr->hdr_1st >> 4;
         if(version != ETHERIP_VERSION){
             // unknown version
-            printf("unknown version\n");
             continue;
         }
         // reserved field check
@@ -134,17 +131,10 @@ static void *recv_handlar(void *args){
         reserved2 = hdr->hdr_2nd;
         if(reserved1 != 0 || reserved2 != 0){
             // reserved field is not 0
-            printf("reserved field is not 0\n");
             continue;
         }
 
-        slen = tap_write(tap_fd, (uint8_t *)hdr+1, rlen - sizeof(struct etherip_hdr) - ip_hdr_len);
-        if(slen == -1){
-            // Failed to tap_write()
-            return NULL;
-        }
-        // need to improve
-        if((size_t)slen != rlen - sizeof(struct etherip_hdr) - ip_hdr_len){
+        if(tap_write(tap_fd, (uint8_t *)(hdr+1), rlen - sizeof(struct etherip_hdr) - ip_hdr_len) == -1){
             // Failed to tap_write()
             return NULL;
         }
@@ -160,7 +150,7 @@ static void *send_handlar(void *args){
     int tap_fd = ((struct send_handlar_args *)args)->tap_fd;
     struct sockaddr dst_addr = ((struct send_handlar_args *)args)->dst_addr;
 
-    ssize_t rlen, slen; // receive len, send len
+    ssize_t rlen; // receive len
     uint8_t buffer[BUFFER_SIZE];
     uint8_t frame[BUFFER_SIZE];
     struct etherip_hdr *hdr;
@@ -179,12 +169,7 @@ static void *send_handlar(void *args){
         hdr->hdr_1st = ETHERIP_VERSION << 4;
         hdr->hdr_2nd = 0;
         memcpy(hdr+1, buffer, rlen);
-        slen = sock_write(sock_fd, frame, sizeof(struct etherip_hdr)+rlen, &dst_addr, sizeof(dst_addr));
-        if(slen == -1){
-            // Failed to sock_write()
-            return NULL;
-        }
-        if((unsigned long)slen != sizeof(struct etherip_hdr)+rlen){
+        if(sock_write(sock_fd, frame, sizeof(struct etherip_hdr) + rlen, &dst_addr, sizeof(dst_addr)) == -1){
             // Failed to sock_write()
             return NULL;
         }
