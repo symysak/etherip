@@ -184,7 +184,7 @@ static void *send_handlar(void *args){
             // Failed to sock_write()
             return NULL;
         }
-        if((unsigned long)slen != sizeof(hdr)+rlen){
+        if((unsigned long)slen != sizeof(struct etherip_hdr)+rlen){
             // Failed to sock_write()
             return NULL;
         }
