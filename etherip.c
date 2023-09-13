@@ -234,6 +234,7 @@ int main(int argc, char **argv){
     }
 
     struct sockaddr src_addr;
+    socklen_t sock_len;
     if(domain == AF_INET){
         struct sockaddr_in *src_addr4;
         src_addr4 = (struct sockaddr_in *)&src_addr;
@@ -241,6 +242,7 @@ int main(int argc, char **argv){
         src_addr4->sin_family = AF_INET;
         inet_pton(AF_INET, src, &src_addr4->sin_addr.s_addr);
         src_addr4->sin_port  = htons(ETHERIP_PROTO_NUM);
+        sock_len =  sizeof(*src_addr4);
     }
     else if(domain == AF_INET6){
         struct sockaddr_in6 *src_addr6;
@@ -248,15 +250,15 @@ int main(int argc, char **argv){
 
         src_addr6->sin6_family = AF_INET6;
         inet_pton(AF_INET6, src, &src_addr6->sin6_addr.s6_addr);
-        src_addr6->sin6_port  = htons(ETHERIP_PROTO_NUM);
+        src_addr6->sin6_port = htons(ETHERIP_PROTO_NUM);
+        sock_len = sizeof(*src_addr6);
     }
-    socklen_t sock_len;
-    sock_len = sizeof(src_addr);
     
     if(sock_open(&sock_fd, domain, &src_addr, sock_len) == -1){
         // Failed to sock_open()
         return 0;
     }
+    printf("ok\n");
     
     struct sockaddr dst_addr;
     if(domain == AF_INET){
