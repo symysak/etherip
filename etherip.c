@@ -71,7 +71,6 @@ static void *recv_handlar(void *args){
         int ip_hdr_len;
         struct etherip_hdr *hdr;
         uint8_t version;
-        size_t total;
 
         rlen = sock_read(sock_fd, buffer, sizeof(buffer), &addr, &addr_len);
         if(rlen == -1){
@@ -81,7 +80,7 @@ static void *recv_handlar(void *args){
 
         
         if(domain == AF_INET){
-            if(rlen < sizeof(struct iphdr) + sizeof(struct etherip_hdr)){
+            if((size_t)rlen < sizeof(struct iphdr) + sizeof(struct etherip_hdr)){
                 // too short
                 printf("too short\n");
                 continue;
@@ -102,7 +101,7 @@ static void *recv_handlar(void *args){
             hdr = (struct etherip_hdr *)(buffer + ip_hdr_len);
         }
         else if(domain == AF_INET6){
-            if(rlen < sizeof(struct ip6_hdr) + sizeof(struct etherip_hdr)){
+            if((size_t)rlen < sizeof(struct ip6_hdr) + sizeof(struct etherip_hdr)){
                 // too short
                 printf("too short\n");
                 continue;
@@ -117,8 +116,7 @@ static void *recv_handlar(void *args){
                 continue;
             }
 
-            // skip header
-            ip_hdr = (struct ip6_hdr *)buffer;
+            // skip header6
             ip_hdr_len = sizeof(struct ip6_hdr);
             hdr = (struct etherip_hdr *)(buffer + ip_hdr_len);
         }
@@ -140,13 +138,13 @@ static void *recv_handlar(void *args){
             continue;
         }
 
-        slen = tap_write(tap_fd, hdr+1, rlen - sizeof(struct etherip_hdr) - ip_hdr_len);
+        slen = tap_write(tap_fd, (uint8_t *)hdr+1, rlen - sizeof(struct etherip_hdr) - ip_hdr_len);
         if(slen == -1){
             // Failed to tap_write()
             return NULL;
         }
         // need to improve
-        if(slen != rlen - sizeof(struct etherip_hdr) - ip_hdr_len){
+        if((size_t)slen != rlen - sizeof(struct etherip_hdr) - ip_hdr_len){
             // Failed to tap_write()
             return NULL;
         }
@@ -181,7 +179,7 @@ static void *send_handlar(void *args){
         hdr->hdr_1st = ETHERIP_VERSION << 4;
         hdr->hdr_2nd = 0;
         memcpy(hdr+1, buffer, rlen);
-        slen = sock_write(sock_fd, frame, sizeof(hdr)+rlen, &dst_addr, sizeof(dst_addr));
+        slen = sock_write(sock_fd, frame, sizeof(struct etherip_hdr)+rlen, &dst_addr, sizeof(dst_addr));
         if(slen == -1){
             // Failed to sock_write()
             return NULL;
@@ -252,7 +250,7 @@ int main(int argc, char **argv){
     }
 
     // init
-    if(tap_open(&tap_fd, tap_name, mtu) == -1){
+    if(tap_open(&tap_fd, tap_name, mtu, domain) == -1){
         // Failed to tap_open()
         return 0;
     }
