@@ -25,16 +25,12 @@ extern int tap_open(int *fd, char name[], int mtu){
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(ifr));
     strncpy(ifr.ifr_name, name, IFNAMSIZ);
-    printf("tap_open name: %s\n", ifr.ifr_name);
     ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
     if(ioctl(*fd, TUNSETIFF, &ifr) == -1){
         fprintf(stderr, "Failed to TUNSETIFF: %s\n", strerror(errno));
         close(*fd);
         return -1;
     }
-    printf("tap_open fd: %d\n", *fd);
-
-
 
     ifr.ifr_mtu = mtu;
     if(ioctl(socket(AF_INET, SOCK_DGRAM, 0), SIOCSIFMTU, &ifr) == -1){
@@ -64,7 +60,6 @@ extern ssize_t tap_read(int fd, uint8_t *buffer, size_t size){
 
 extern ssize_t tap_write(int fd, const uint8_t *frame, size_t flen){
     ssize_t len;
-    printf("tap_write fd: %d\n", fd);
     len = write(fd, frame, flen);
     if(len <= 0){
         fprintf(stderr, "tap_write: %s", strerror(errno));

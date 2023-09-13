@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <linux/if.h>
 #include <netinet/ip.h>
+#include <netinet/ip6.h>
 #include <arpa/inet.h>
 
 #include "etherip.h"
@@ -64,6 +65,13 @@ static void *recv_handlar(void *args){
         uint8_t buffer[BUFFER_SIZE];
         struct sockaddr addr;
         socklen_t addr_len;
+        uint8_t reserved1;
+        uint8_t reserved2;
+        struct iphdr *ip_hdr;
+        int ip_hdr_len;
+        struct etherip_hdr *hdr;
+        uint8_t version;
+        size_t total;
 
         rlen = sock_read(sock_fd, buffer, sizeof(buffer), &addr, &addr_len);
         if(rlen == -1){
@@ -71,8 +79,15 @@ static void *recv_handlar(void *args){
             return NULL;
         }
 
-        // destination check
+        
         if(domain == AF_INET){
+            if(rlen < sizeof(struct iphdr) + sizeof(struct etherip_hdr)){
+                // too short
+                printf("too short\n");
+                continue;
+            }
+
+            // destination check
             struct sockaddr_in *dst_addr4;
             dst_addr4 = (struct sockaddr_in *)&dst_addr;
             struct sockaddr_in *addr4;
@@ -80,8 +95,20 @@ static void *recv_handlar(void *args){
             if(addr4->sin_addr.s_addr != dst_addr4->sin_addr.s_addr){
                 continue;
             }
+
+            // skip header
+            ip_hdr = (struct iphdr *)buffer;
+            ip_hdr_len = ip_hdr->ihl * 4;
+            hdr = (struct etherip_hdr *)(buffer + ip_hdr_len);
         }
         else if(domain == AF_INET6){
+            if(rlen < sizeof(struct ip6_hdr) + sizeof(struct etherip_hdr)){
+                // too short
+                printf("too short\n");
+                continue;
+            }
+
+            // destination check
             struct sockaddr_in6 *dst_addr6;
             dst_addr6 = (struct sockaddr_in6 *)&dst_addr;
             struct sockaddr_in6 *addr6;
@@ -89,38 +116,37 @@ static void *recv_handlar(void *args){
             if(addr6->sin6_addr.s6_addr != dst_addr6->sin6_addr.s6_addr){
                 continue;
             }
+
+            // skip header
+            ip_hdr = (struct ip6_hdr *)buffer;
+            ip_hdr_len = sizeof(struct ip6_hdr);
+            hdr = (struct etherip_hdr *)(buffer + ip_hdr_len);
         }
 
-        struct iphdr *ip_hdr;
-        ip_hdr = (struct iphdr *)buffer;
-        int ip_hdr_len = ip_hdr->ihl * 4;
-
-        struct etherip_hdr *hdr;
-        hdr = (struct etherip_hdr *)(buffer + ip_hdr_len);
 
         // version check
-        uint8_t version = hdr->hdr_1st >> 4;
+        version = hdr->hdr_1st >> 4;
         if(version != ETHERIP_VERSION){
             // unknown version
             printf("unknown version\n");
             continue;
         }
         // reserved field check
-        uint8_t reserved1 = hdr->hdr_1st & 0xF;
-        uint8_t reserved2 = hdr->hdr_2nd;
+        reserved1 = hdr->hdr_1st & 0xF;
+        reserved2 = hdr->hdr_2nd;
         if(reserved1 != 0 || reserved2 != 0){
             // reserved field is not 0
             printf("reserved field is not 0\n");
             continue;
         }
 
-        slen = tap_write(tap_fd, hdr+1, rlen);
+        slen = tap_write(tap_fd, hdr+1, rlen - sizeof(struct etherip_hdr) - ip_hdr_len);
         if(slen == -1){
             // Failed to tap_write()
             return NULL;
         }
         // need to improve
-        if(slen != rlen){
+        if(slen != rlen - sizeof(struct etherip_hdr) - ip_hdr_len){
             // Failed to tap_write()
             return NULL;
         }
@@ -135,13 +161,15 @@ static void *send_handlar(void *args){
     int sock_fd = ((struct send_handlar_args *)args)->sock_fd;
     int tap_fd = ((struct send_handlar_args *)args)->tap_fd;
     struct sockaddr dst_addr = ((struct send_handlar_args *)args)->dst_addr;
+
+    ssize_t rlen, slen; // receive len, send len
+    uint8_t buffer[BUFFER_SIZE];
+    uint8_t frame[BUFFER_SIZE];
+    struct etherip_hdr *hdr;
     // end setup
     pthread_barrier_wait(&barrier);
 
     while(1){
-
-        ssize_t rlen, slen; // receive len, send len
-        uint8_t buffer[BUFFER_SIZE];
 
         rlen = tap_read(tap_fd, buffer, sizeof(buffer));
         if(rlen == -1){
@@ -149,8 +177,6 @@ static void *send_handlar(void *args){
             return NULL;
         }
 
-        uint8_t frame[BUFFER_SIZE];
-        struct etherip_hdr *hdr;
         hdr = (struct etherip_hdr *)frame;
         hdr->hdr_1st = ETHERIP_VERSION << 4;
         hdr->hdr_2nd = 0;
@@ -185,10 +211,11 @@ int main(int argc, char **argv){
     int mtu = 1500;
     int tap_fd;
     int sock_fd;
+    int required_arg_cnt;
     
 
     // parse arguments
-    int required_arg_cnt = 0;
+    required_arg_cnt = 0;
     for(int i = 1; i < argc; i++){
         if(strcmp(argv[i], "ipv4") == 0){
             required_arg_cnt++;
