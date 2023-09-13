@@ -134,11 +134,7 @@ static void *recv_handlar(void *args){
             continue;
         }
 
-        if(tap_write(tap_fd, (uint8_t *)(hdr+1), rlen - sizeof(struct etherip_hdr) - ip_hdr_len) == -1){
-            // Failed to tap_write()
-            return NULL;
-        }
-
+        tap_write(tap_fd, (uint8_t *)(hdr+1), rlen - sizeof(struct etherip_hdr) - ip_hdr_len);
     }
 
     return NULL;
@@ -169,10 +165,7 @@ static void *send_handlar(void *args){
         hdr->hdr_1st = ETHERIP_VERSION << 4;
         hdr->hdr_2nd = 0;
         memcpy(hdr+1, buffer, rlen);
-        if(sock_write(sock_fd, frame, sizeof(struct etherip_hdr) + rlen, &dst_addr, sizeof(dst_addr)) == -1){
-            // Failed to sock_write()
-            return NULL;
-        }
+        sock_write(sock_fd, frame, sizeof(struct etherip_hdr) + rlen, &dst_addr, sizeof(dst_addr));
 
     }
 
