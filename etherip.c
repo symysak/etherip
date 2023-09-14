@@ -24,13 +24,13 @@ struct recv_handlar_args {
     int domain;
     int sock_fd;
     int tap_fd;
-    struct sockaddr dst_addr;
+    struct sockaddr *dst_addr;
 };
 
 struct send_handlar_args {
     int sock_fd;
     int tap_fd;
-    struct sockaddr dst_addr;
+    struct sockaddr *dst_addr;
 };
 
 static void on_signal(int s){
@@ -55,7 +55,7 @@ static void *recv_handlar(void *args){
     int domain = ((struct recv_handlar_args *)args)->domain;
     int sock_fd = ((struct recv_handlar_args *)args)->sock_fd;
     int tap_fd = ((struct recv_handlar_args *)args)->tap_fd;
-    struct sockaddr dst_addr = ((struct recv_handlar_args *)args)->dst_addr;
+    struct sockaddr *dst_addr = ((struct recv_handlar_args *)args)->dst_addr;
     
     // end setup
     pthread_barrier_wait(&barrier);
@@ -87,7 +87,7 @@ static void *recv_handlar(void *args){
 
             // destination check
             struct sockaddr_in *dst_addr4;
-            dst_addr4 = (struct sockaddr_in *)&dst_addr;
+            dst_addr4 = (struct sockaddr_in *)dst_addr;
             struct sockaddr_in *addr4;
             addr4 = (struct sockaddr_in *)&addr;
             if(addr4->sin_addr.s_addr != dst_addr4->sin_addr.s_addr){
@@ -107,16 +107,14 @@ static void *recv_handlar(void *args){
 
             // destination check
             struct sockaddr_in6 *dst_addr6;
-            dst_addr6 = (struct sockaddr_in6 *)&dst_addr;
+            dst_addr6 = (struct sockaddr_in6 *)dst_addr;
             struct sockaddr_in6 *addr6;
             addr6 = (struct sockaddr_in6 *)&addr;
-            if(addr6->sin6_addr.s6_addr != dst_addr6->sin6_addr.s6_addr){
-                continue;
+            if(memcmp(addr6->sin6_addr.s6_addr, dst_addr6->sin6_addr.s6_addr, sizeof(addr6->sin6_addr.s6_addr)) != 0){
+	            continue;
             }
 
-            // skip header6
-            ip_hdr_len = sizeof(struct ip6_hdr);
-            hdr = (struct etherip_hdr *)(buffer + ip_hdr_len);
+            hdr = (struct etherip_hdr *)(&buffer);
         }
 
 
@@ -144,7 +142,8 @@ static void *send_handlar(void *args){
     // setup
     int sock_fd = ((struct send_handlar_args *)args)->sock_fd;
     int tap_fd = ((struct send_handlar_args *)args)->tap_fd;
-    struct sockaddr dst_addr = ((struct send_handlar_args *)args)->dst_addr;
+    struct sockaddr *dst_addr = ((struct send_handlar_args *)args)->dst_addr;
+    size_t dst_addr_len = sizeof( *(struct sockaddr_in6 *)dst_addr );
 
     ssize_t rlen; // receive len
     uint8_t buffer[BUFFER_SIZE];
@@ -165,7 +164,7 @@ static void *send_handlar(void *args){
         hdr->hdr_1st = ETHERIP_VERSION << 4;
         hdr->hdr_2nd = 0;
         memcpy(hdr+1, buffer, rlen);
-        sock_write(sock_fd, frame, sizeof(struct etherip_hdr) + rlen, &dst_addr, sizeof(dst_addr));
+        sock_write(sock_fd, frame, sizeof(struct etherip_hdr) + rlen, dst_addr, dst_addr_len);
 
     }
 
@@ -258,7 +257,6 @@ int main(int argc, char **argv){
         // Failed to sock_open()
         return 0;
     }
-    printf("ok\n");
     
     struct sockaddr dst_addr;
     if(domain == AF_INET){
@@ -275,15 +273,15 @@ int main(int argc, char **argv){
 
         dst_addr6->sin6_family = AF_INET6;
         inet_pton(AF_INET6, dst, &dst_addr6->sin6_addr.s6_addr);
-        dst_addr6->sin6_port  = htons(ETHERIP_PROTO_NUM);
+	    dst_addr6->sin6_port = htons(ETHERIP_PROTO_NUM);
     }
 
     // start threads
     pthread_barrier_init(&barrier, NULL, 2);
 
-    struct recv_handlar_args recv_args = {domain, sock_fd, tap_fd, dst_addr};
+    struct recv_handlar_args recv_args = {domain, sock_fd, tap_fd, &dst_addr};
     pthread_create(&threads[0], NULL, recv_handlar, &recv_args);
-    struct send_handlar_args send_args = {sock_fd, tap_fd, dst_addr};
+    struct send_handlar_args send_args = {sock_fd, tap_fd, &dst_addr};
     pthread_create(&threads[1], NULL, send_handlar, &send_args);
 
     if(pthread_join(threads[0], NULL) == 0){
