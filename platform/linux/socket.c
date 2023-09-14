@@ -8,7 +8,7 @@
 #include "socket.h"
 #include "etherip.h"
 
-extern int sock_open(int *fd, int domain, struct sockaddr *addr, socklen_t addr_len){
+extern int sock_open(int *fd, int domain, struct sockaddr_storage *addr, socklen_t addr_len){
     *fd = socket(domain, SOCK_RAW, ETHERIP_PROTO_NUM);
     if(*fd == -1){
         fprintf(stderr, "Failed to open socket: %s\n", strerror(errno));
@@ -28,7 +28,7 @@ extern int sock_close(int fd){
     return 0;
 }
 
-extern ssize_t sock_read(int fd, uint8_t *buffer, size_t size, struct sockaddr *addr, socklen_t *addr_len){
+extern ssize_t sock_read(int fd, uint8_t *buffer, size_t size, struct sockaddr_storage *addr, socklen_t *addr_len){
     ssize_t len;
     len = recvfrom(fd, buffer, size, 0, addr, addr_len);
     if(len <= 0){
@@ -38,7 +38,7 @@ extern ssize_t sock_read(int fd, uint8_t *buffer, size_t size, struct sockaddr *
     return len;
 }
 
-extern ssize_t sock_write(int fd, const uint8_t *frame, size_t size, struct sockaddr *addr, socklen_t addr_len){
+extern ssize_t sock_write(int fd, const uint8_t *frame, size_t size, struct sockaddr_storage *addr, socklen_t addr_len){
     ssize_t len;
     len = sendto(fd, frame, size, 0, addr, addr_len);
     if(len <= 0){

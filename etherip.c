@@ -24,14 +24,14 @@ struct recv_handlar_args {
     int domain;
     int sock_fd;
     int tap_fd;
-    struct sockaddr *dst_addr;
+    struct sockaddr_storage *dst_addr;
 };
 
 struct send_handlar_args {
     int domain;
     int sock_fd;
     int tap_fd;
-    struct sockaddr *dst_addr;
+    struct sockaddr_storage *dst_addr;
 };
 
 static void on_signal(int s){
@@ -56,22 +56,23 @@ static void *recv_handlar(void *args){
     int domain = ((struct recv_handlar_args *)args)->domain;
     int sock_fd = ((struct recv_handlar_args *)args)->sock_fd;
     int tap_fd = ((struct recv_handlar_args *)args)->tap_fd;
-    struct sockaddr *dst_addr = ((struct recv_handlar_args *)args)->dst_addr;
+    struct sockaddr_storage *dst_addr = ((struct recv_handlar_args *)args)->dst_addr;
     
+    ssize_t rlen;
+    uint8_t buffer[BUFFER_SIZE];
+    struct sockaddr_storage addr;
+    socklen_t addr_len;
+    uint8_t reserved1;
+    uint8_t reserved2;
+    struct iphdr *ip_hdr;
+    int ip_hdr_len;
+    struct etherip_hdr *hdr;
+    uint8_t version;
+    size_t write_len;
     // end setup
     pthread_barrier_wait(&barrier);
 
     while(1){
-        ssize_t rlen;
-        uint8_t buffer[BUFFER_SIZE];
-        struct sockaddr addr;
-        socklen_t addr_len;
-        uint8_t reserved1;
-        uint8_t reserved2;
-        struct iphdr *ip_hdr;
-        int ip_hdr_len;
-        struct etherip_hdr *hdr;
-        uint8_t version;
 
         rlen = sock_read(sock_fd, buffer, sizeof(buffer), &addr, &addr_len);
         if(rlen == -1){
@@ -99,6 +100,7 @@ static void *recv_handlar(void *args){
             ip_hdr = (struct iphdr *)buffer;
             ip_hdr_len = ip_hdr->ihl * 4;
             hdr = (struct etherip_hdr *)(buffer + ip_hdr_len);
+            write_len = rlen - ETHERIP_HEADER_LEN - ip_hdr_len;
         }
         else if(domain == AF_INET6){
             if((size_t)rlen < sizeof(struct ip6_hdr) + sizeof(struct etherip_hdr)){
@@ -116,6 +118,7 @@ static void *recv_handlar(void *args){
             }
 
             hdr = (struct etherip_hdr *)(&buffer);
+            write_len = rlen - ETHERIP_HEADER_LEN;
         }
 
 
@@ -133,7 +136,7 @@ static void *recv_handlar(void *args){
             continue;
         }
 
-        tap_write(tap_fd, (uint8_t *)(hdr+1), rlen - sizeof(struct etherip_hdr) - ip_hdr_len);
+        tap_write(tap_fd, (uint8_t *)(hdr+1), write_len);
     }
 
     return NULL;
@@ -144,7 +147,7 @@ static void *send_handlar(void *args){
     int domain = ((struct send_handlar_args *)args)->domain;
     int sock_fd = ((struct send_handlar_args *)args)->sock_fd;
     int tap_fd = ((struct send_handlar_args *)args)->tap_fd;
-    struct sockaddr *dst_addr = ((struct send_handlar_args *)args)->dst_addr;
+    struct sockaddr_storage *dst_addr = ((struct send_handlar_args *)args)->dst_addr;
     size_t dst_addr_len;
 
     ssize_t rlen; // receive len
@@ -239,7 +242,7 @@ int main(int argc, char **argv){
         return 0;
     }
 
-    struct sockaddr src_addr;
+    struct sockaddr_storage src_addr;
     socklen_t sock_len;
     if(domain == AF_INET){
         struct sockaddr_in *src_addr4;
@@ -265,7 +268,7 @@ int main(int argc, char **argv){
         return 0;
     }
     
-    struct sockaddr dst_addr;
+    struct sockaddr_storage dst_addr;
     if(domain == AF_INET){
         struct sockaddr_in *dst_addr4;
         dst_addr4 = (struct sockaddr_in *)&dst_addr;
