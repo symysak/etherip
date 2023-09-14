@@ -1,8 +1,15 @@
 # etherip
 EtherIP(RFC3378) for Linux
+Confirmed to work with NEC UNIVERGE IX series
 
-# 
+# Usage
 ```
-sudo etherip [OPTIONS] { ipv4 | ipv6 } remote <remote ip addr> local <local ip addr>
-OPTIONS := { --mtu }
+etherip -h
+
+example:
+sudo ip tuntap add mode tap dev tap0
+sudo ip link set up dev tap0
+sudo ip addr add 192.168.1.2/24 dev tap0
+etherip ipv4 dst 192.168.1.1 src 192.168.1.2 tap tap0
 ```
+
