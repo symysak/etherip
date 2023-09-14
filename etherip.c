@@ -28,6 +28,7 @@ struct recv_handlar_args {
 };
 
 struct send_handlar_args {
+    int domain;
     int sock_fd;
     int tap_fd;
     struct sockaddr *dst_addr;
@@ -140,10 +141,11 @@ static void *recv_handlar(void *args){
 
 static void *send_handlar(void *args){
     // setup
+    int domain = ((struct send_handlar_args *)args)->domain;
     int sock_fd = ((struct send_handlar_args *)args)->sock_fd;
     int tap_fd = ((struct send_handlar_args *)args)->tap_fd;
     struct sockaddr *dst_addr = ((struct send_handlar_args *)args)->dst_addr;
-    size_t dst_addr_len = sizeof( *(struct sockaddr_in6 *)dst_addr );
+    size_t dst_addr_len;
 
     ssize_t rlen; // receive len
     uint8_t buffer[BUFFER_SIZE];
@@ -164,6 +166,11 @@ static void *send_handlar(void *args){
         hdr->hdr_1st = ETHERIP_VERSION << 4;
         hdr->hdr_2nd = 0;
         memcpy(hdr+1, buffer, rlen);
+        if(domain == AF_INET)
+            dst_addr_len = sizeof( *(struct sockaddr_in *)dst_addr );
+        else if(domain == AF_INET6){
+            dst_addr_len = sizeof( *(struct sockaddr_in6 *)dst_addr );
+        }
         sock_write(sock_fd, frame, sizeof(struct etherip_hdr) + rlen, dst_addr, dst_addr_len);
 
     }
@@ -281,7 +288,7 @@ int main(int argc, char **argv){
 
     struct recv_handlar_args recv_args = {domain, sock_fd, tap_fd, &dst_addr};
     pthread_create(&threads[0], NULL, recv_handlar, &recv_args);
-    struct send_handlar_args send_args = {sock_fd, tap_fd, &dst_addr};
+    struct send_handlar_args send_args = {domain, sock_fd, tap_fd, &dst_addr};
     pthread_create(&threads[1], NULL, send_handlar, &send_args);
 
     if(pthread_join(threads[0], NULL) == 0){
