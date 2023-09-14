@@ -8,7 +8,7 @@ Confirmed to work with NEC UNIVERGE IX series
 make
 sudo make install
 ```
-# Usage
+## Usage
 ```
 etherip -h
 
