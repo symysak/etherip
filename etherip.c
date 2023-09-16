@@ -231,7 +231,7 @@ int main(int argc, char **argv){
         }
     }
     if(required_arg_cnt != 4){
-        printf("Too few or too many arguments required.\n");
+        printf("[ERROR]: Too few or too many arguments required.\n");
         printf("Help: etherip -h\n");
         return 0;
     }
@@ -295,10 +295,14 @@ int main(int argc, char **argv){
     pthread_create(&threads[1], NULL, send_handlar, &send_args);
 
     if(pthread_join(threads[0], NULL) == 0){
-        printf("Stopped recv_handlar\n");
+        fprintf(stderr, "[ERROR]: Stopped recv_handlar\n");
+        pthread_kill(threads[1], SIGHUP);
+        fprintf(stderr, "[ERROR]: Stopped etherip\n");
     }
     if(pthread_join(threads[1], NULL) == 0){
-        printf("Stopped send_handlar\n");
+        fprintf(stderr, "[ERROR]: Stopped send_handlar\n");
+        pthread_kill(threads[0], SIGHUP);
+        fprintf(stderr, "[ERROR]: Stopped etherip\n");
     }
 
     pthread_barrier_destroy(&barrier);

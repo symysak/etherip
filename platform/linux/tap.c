@@ -19,7 +19,7 @@ extern int tap_open(int *fd, char name[], int mtu, int domain){
     *fd = open("/dev/net/tun", O_RDWR);
     
     if(*fd == -1){
-        fprintf(stderr, "Failed to open tap: %s\n", strerror(errno));
+        fprintf(stderr, "[ERROR]: Failed to open tap: %s\n", strerror(errno));
         return -1;
     }
 
@@ -28,7 +28,7 @@ extern int tap_open(int *fd, char name[], int mtu, int domain){
     strncpy(ifr.ifr_name, name, IFNAMSIZ);
     ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
     if(ioctl(*fd, TUNSETIFF, &ifr) == -1){
-        fprintf(stderr, "Failed to TUNSETIFF: %s\n", strerror(errno));
+        fprintf(stderr, "[ERROR]: Failed to TUNSETIFF: %s\n", strerror(errno));
         close(*fd);
         return -1;
     }
@@ -40,7 +40,7 @@ extern int tap_open(int *fd, char name[], int mtu, int domain){
         ifr.ifr_mtu = mtu - IPv6_HEADER_LEN - ETHERIP_HEADER_LEN - ETHER_HEADER_LEN;
     }
     if(ioctl(socket(AF_INET, SOCK_DGRAM, 0), SIOCSIFMTU, &ifr) == -1){
-        fprintf(stderr, "Failed to SIOCSIFMTU: %s\n", strerror(errno));
+        fprintf(stderr, "[ERROR]: Failed to SIOCSIFMTU: %s\n", strerror(errno));
         close(*fd);
         return -1;
     }
@@ -58,7 +58,7 @@ extern ssize_t tap_read(int fd, uint8_t *buffer, size_t size){
 
     len = read(fd, buffer, size);
     if(len <= 0){
-        fprintf(stderr, "tap_read: %s", strerror(errno));
+        fprintf(stderr, "[ERROR]: tap_read: %s", strerror(errno));
         return -1;
     }
     return len;
@@ -68,7 +68,7 @@ extern ssize_t tap_write(int fd, const uint8_t *frame, size_t flen){
     ssize_t len;
     len = write(fd, frame, flen);
     if(len <= 0){
-        fprintf(stderr, "tap_write: %s", strerror(errno));
+        fprintf(stderr, "[ERROR]: tap_write: %s", strerror(errno));
         return -1;
     }
     return len;
