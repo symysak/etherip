@@ -294,6 +294,8 @@ int main(int argc, char **argv){
     struct send_handlar_args send_args = {domain, sock_fd, tap_fd, &dst_addr};
     pthread_create(&threads[1], NULL, send_handlar, &send_args);
 
+    fprintf(stdout, "[INFO]: Started etherip. dst: %s src: %s\n", dst, src);
+
     if(pthread_join(threads[0], NULL) == 0){
         fprintf(stderr, "[ERROR]: Stopped recv_handlar\n");
         pthread_kill(threads[1], SIGHUP);
