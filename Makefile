@@ -9,7 +9,7 @@ LDFLAGS :=
 ifeq ($(shell uname),Linux)
   BASE = platform/linux
   CFLAGS := $(CFLAGS) -pthread -iquote $(BASE)
-  OBJS := $(OBJS) $(BASE)/tap.o $(BASE)/socket.o
+  OBJS := $(OBJS) $(BASE)/tap.o $(BASE)/socket.o $(BASE)/memory.o
 endif
 
 all: $(PROGRAM)
