@@ -8,5 +8,6 @@
         "ip.h": "c",
         "inet.h": "c",
         "socket.h": "c"
-    }
+    },
+    "git.enableCommitSigning": false
 }
