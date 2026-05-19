@@ -3,6 +3,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/ip6.h>
 #include <unistd.h>
 
 #include "socket.h"
@@ -13,6 +15,24 @@ extern int sock_open(int *fd, int domain, struct sockaddr_storage *addr, socklen
     if(*fd == -1){
         fprintf(stderr, "[ERROR]: Failed to open socket: %s\n", strerror(errno));
         return -1;
+    }
+
+    if(domain == AF_INET){
+        int pmtu_discover = IP_PMTUDISC_DONT;
+        if(setsockopt(*fd, IPPROTO_IP, IP_MTU_DISCOVER, &pmtu_discover, sizeof(pmtu_discover)) == -1){
+            fprintf(stderr, "[ERROR]: Failed to disable IPv4 PMTU discovery: %s\n", strerror(errno));
+            close(*fd);
+            return -1;
+        }
+    }
+
+    if(domain == AF_INET6){
+        int pmtu6 = IPV6_PMTUDISC_DONT;
+        if(setsockopt(*fd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, &pmtu6, sizeof(pmtu6)) == -1){
+            fprintf(stderr, "[ERROR]: Failed to disable IPv6 PMTU discovery: %s\n", strerror(errno));
+            close(*fd);
+            return -1;
+        }
     }
 
     if(bind(*fd, (struct sockaddr *)addr, addr_len) == -1){
