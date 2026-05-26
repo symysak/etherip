@@ -26,14 +26,15 @@ extern int sock_open(int *fd, int domain, struct sockaddr_storage *addr, socklen
         }
     }
 
-    if(domain == AF_INET6){
-        int pmtu6 = IPV6_PMTUDISC_DONT;
-        if(setsockopt(*fd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, &pmtu6, sizeof(pmtu6)) == -1){
-            fprintf(stderr, "[ERROR]: Failed to disable IPv6 PMTU discovery: %s\n", strerror(errno));
-            close(*fd);
-            return -1;
-        }
-    }
+    // Note: By disabling PMTU discovery for IPv6, the encapsulated packets will be fragmented 1280bytes even if the underlay MTU is larger. 
+    // if(domain == AF_INET6){
+    //     int pmtu6 = IPV6_PMTUDISC_DONT;
+    //     if(setsockopt(*fd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, &pmtu6, sizeof(pmtu6)) == -1){
+    //         fprintf(stderr, "[ERROR]: Failed to disable IPv6 PMTU discovery: %s\n", strerror(errno));
+    //         close(*fd);
+    //         return -1;
+    //     }
+    // }
 
     if(bind(*fd, (struct sockaddr *)addr, addr_len) == -1){
         fprintf(stderr, "[ERROR]: Failed to bind socket: %s\n", strerror(errno));
