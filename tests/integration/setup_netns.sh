@@ -33,8 +33,15 @@ create() {
   ip netns exec $NS1 ip link set dev veth1 up
   ip netns exec $NS2 ip link set dev veth2 up
 
+  ip netns exec $NS1 ip link set dev veth1 mtu 1500
+  ip netns exec $NS2 ip link set dev veth2 mtu 1500
+
   ip netns exec $NS1 ip addr add 10.10.10.1/24 dev veth1
   ip netns exec $NS2 ip addr add 10.10.10.2/24 dev veth2
+
+  # IPv6 outer addresses on veth
+  ip netns exec $NS1 ip -6 addr add 2001:db8:1::1/64 dev veth1
+  ip netns exec $NS2 ip -6 addr add 2001:db8:1::2/64 dev veth2
 
   ip netns exec $NS1 ip tuntap add dev tap1 mode tap
   ip netns exec $NS2 ip tuntap add dev tap2 mode tap
@@ -42,6 +49,10 @@ create() {
   ip netns exec $NS2 ip link set dev tap2 up
   ip netns exec $NS1 ip addr add 192.168.200.1/24 dev tap1
   ip netns exec $NS2 ip addr add 192.168.200.2/24 dev tap2
+
+  # IPv6 inner addresses on taps (used for ping6 test)
+  ip netns exec $NS1 ip -6 addr add 2001:db8:200::1/64 dev tap1
+  ip netns exec $NS2 ip -6 addr add 2001:db8:200::2/64 dev tap2
 
   echo "created namespaces and interfaces"
 }

@@ -14,7 +14,7 @@ Prerequisites
 
 Files
 - `tests/integration/setup_netns.sh` — create/destroy namespaces, veth pairs, and TAPs
-- `tests/integration/run_netns_tests.sh` — start two `etherip` instances, run `ping` with DF, optional `iperf3`, then cleanup
+- `tests/integration/run_netns_tests.sh` — start two `etherip` instances, run `ping` with DF, optional `iperf3`, save logs under `~/tmp`, capture EtherIP packets with `tcpdump`, then cleanup
 
 Quick start
 ```bash
@@ -26,12 +26,16 @@ sudo tests/integration/run_netns_tests.sh
 
 Notes
 - The ping test uses `ping -M do -s 1472` to send an inner IP packet of 1500 bytes (20B IP + 8B ICMP + 1472 payload = 1500). DF is set on the inner packet; fragmentation of the outer (encapsulated) packet is allowed.
+ - The ping test uses `ping -M do -s 1472` to send an inner IP packet of 1500 bytes (20B IP + 8B ICMP + 1472 payload = 1500). DF is set on the inner packet; fragmentation of the outer (encapsulated) packet is allowed.
+ - IPv6 test: The script also runs an IPv6 mode test after the IPv4 test. It uses `ping -6 -M do -s 1452` to produce a 1500-byte inner IPv6 packet (40B IPv6 header + 8B ICMPv6 + 1452 payload = 1500).
 - To point to a custom `etherip` binary path, set `ETHERIP_BIN` before running:
 ```bash
 export ETHERIP_BIN=/path/to/etherip
 sudo tests/integration/run_netns_tests.sh
 ```
 - Logs are stored under `/tmp/etherip-test-<pid>` and the script prints the path on completion.
+- Logs are stored under `./tmp/etherip-test-<pid>` by default. Override with `ETHERIP_LOGBASE=/some/path`.
+- The script saves packet captures as `ns1-etherip.pcap` and `ns2-etherip.pcap` in the log directory.
 
 CI
 - These tests require privileged operations and are not suitable for unprivileged CI runners. Run them on a privileged runner or dedicated test host.
