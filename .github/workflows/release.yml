@@ -1,0 +1,36 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Build Static Binary
+        run: |
+          make
+          cp etherip etherip-linux-amd64-${GITHUB_SHA}
+
+      - name: Create Release
+        run: |
+          gh release create --generate-notes --target main --title "Release ${GITHUB_SHA}" --assets "etherip-linux-amd64-${GITHUB_SHA}"
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
