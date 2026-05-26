@@ -31,6 +31,6 @@ jobs:
 
       - name: Create Release
         run: |
-          gh release create --generate-notes --target main --title "Release ${GITHUB_SHA}" --assets "etherip-linux-amd64-${GITHUB_SHA}"
+          gh release create "etherip-${GITHUB_SHA}" --generate-notes --target main --title "Release ${GITHUB_SHA}" --assets "etherip-linux-amd64-${GITHUB_SHA}"
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
