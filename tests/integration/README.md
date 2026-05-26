@@ -14,7 +14,7 @@ Prerequisites
 
 Files
 - `tests/integration/setup_netns.sh` — create/destroy namespaces, veth pairs, and TAPs
-- `tests/integration/run_netns_tests.sh` — start two `etherip` instances, run `ping` with DF, optional `iperf3`, then cleanup
+- `tests/integration/run_netns_tests.sh` — start two `etherip` instances, run `ping` with DF, optional `iperf3`, save logs under `~/tmp`, capture EtherIP packets with `tcpdump`, then cleanup
 
 Quick start
 ```bash
@@ -34,6 +34,8 @@ export ETHERIP_BIN=/path/to/etherip
 sudo tests/integration/run_netns_tests.sh
 ```
 - Logs are stored under `/tmp/etherip-test-<pid>` and the script prints the path on completion.
+- Logs are stored under `./tmp/etherip-test-<pid>` by default. Override with `ETHERIP_LOGBASE=/some/path`.
+- The script saves packet captures as `ns1-etherip.pcap` and `ns2-etherip.pcap` in the log directory.
 
 CI
 - These tests require privileged operations and are not suitable for unprivileged CI runners. Run them on a privileged runner or dedicated test host.

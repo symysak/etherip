@@ -2,12 +2,26 @@
 set -euo pipefail
 SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ETHERIP_BIN="${ETHERIP_BIN:-$(pwd)/etherip}"
-ETHERIP_MTU="${ETHERIP_MTU:-1536}"
-LOGDIR="/tmp/etherip-test-$$"
+ETHERIP_MTU="${ETHERIP_MTU:-1500}"
+LOGBASE="${ETHERIP_LOGBASE:-./tmp}"
+LOGDIR="$LOGBASE/etherip-test-$$"
 mkdir -p "$LOGDIR"
+
+TCPDUMP_FILTER="proto 97"
+
+cleanup() {
+  if [ -f "$LOGDIR/tcpdump-ns1.pid" ]; then sudo kill "$(cat "$LOGDIR/tcpdump-ns1.pid")" || true; fi
+  if [ -f "$LOGDIR/tcpdump-ns2.pid" ]; then sudo kill "$(cat "$LOGDIR/tcpdump-ns2.pid")" || true; fi
+}
+
+trap cleanup EXIT
 
 # 1) setup
 sudo "$SCRIPTDIR/setup_netns.sh" create
+
+# capture outer EtherIP packets for the whole test run
+sudo ip netns exec ns1 tcpdump -i veth1 -s 0 -U -w "$LOGDIR/ns1-etherip.pcap" "$TCPDUMP_FILTER" > "$LOGDIR/tcpdump-ns1.log" 2>&1 & echo $! > "$LOGDIR/tcpdump-ns1.pid"
+sudo ip netns exec ns2 tcpdump -i veth2 -s 0 -U -w "$LOGDIR/ns2-etherip.pcap" "$TCPDUMP_FILTER" > "$LOGDIR/tcpdump-ns2.log" 2>&1 & echo $! > "$LOGDIR/tcpdump-ns2.pid"
 
 # 2) start etherip in each ns (background) - IPv4
 
@@ -16,7 +30,7 @@ sudo ip netns exec ns2 bash -c "cd /workspaces/etherip || cd /; $ETHERIP_BIN --m
 
 sleep 1
 
-# MTU/DF test (IPv4): etherip --mtu 1536 gives tap MTU 1500 on IPv4.
+# MTU/DF test (IPv4): etherip --mtu 1500 gives tap MTU 1500 on IPv4.
 echo "Running ping with DF (no-fragment) on inner packet from ns1 -> ns2 (ICMP payload 1472 => 1500-byte inner IP packets)"
 sudo ip netns exec ns1 ping -M do -c 4 -s 1472 192.168.200.2 > "$LOGDIR/ping.out" 2>&1 || true
 cat "$LOGDIR/ping.out"
@@ -45,7 +59,7 @@ if [ -f "$LOGDIR/etherip-ns2.pid" ]; then sudo kill "$(cat "$LOGDIR/etherip-ns2.
 ######################
 # IPv6 test
 ######################
-ETHERIP_MTU_V6="${ETHERIP_MTU_V6:-1556}"
+ETHERIP_MTU_V6="${ETHERIP_MTU_V6:-1500}"
 echo "Starting IPv6 etherip instances (mtu=$ETHERIP_MTU_V6)"
 # use outer veth IPv6 addresses for encapsulation
 sudo ip netns exec ns1 bash -c "cd /workspaces/etherip || cd /; $ETHERIP_BIN --mtu $ETHERIP_MTU_V6 ipv6 dst 2001:db8:1::2 src 2001:db8:1::1 tap tap1 > $LOGDIR/etherip-ns1-v6.log 2>&1 & echo \$! > $LOGDIR/etherip-ns1-v6.pid"
@@ -79,6 +93,7 @@ fi
 # final cleanup: kill any remaining etherip processes and destroy namespaces
 if [ -f "$LOGDIR/etherip-ns1-v6.pid" ]; then sudo kill "$(cat "$LOGDIR/etherip-ns1-v6.pid")" || true; fi
 if [ -f "$LOGDIR/etherip-ns2-v6.pid" ]; then sudo kill "$(cat "$LOGDIR/etherip-ns2-v6.pid")" || true; fi
+cleanup
 sudo "$SCRIPTDIR/setup_netns.sh" destroy
 
 echo "Logs: $LOGDIR"

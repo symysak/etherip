@@ -1,2 +1,4 @@
 *.o
 etherip
+/tmp
+.DS_Store
