@@ -3,7 +3,7 @@ OBJS = etherip.o \
 
 SRCS = $(OBJS:%.o=%.c)
 CC = gcc
-CFLAGS := -W -Wall -iquote .
+CFLAGS := -W -Wall -O3 -flto -static -iquote .
 LDFLAGS :=
 
 ifeq ($(shell uname),Linux)
