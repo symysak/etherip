@@ -25,8 +25,8 @@ sudo ip netns exec ns2 tcpdump -i veth2 -s 0 -U -w "$LOGDIR/ns2-etherip.pcap" "$
 
 # 2) start etherip in each ns (background) - IPv4
 
-sudo ip netns exec ns1 bash -c "cd /workspaces/etherip || cd /; $ETHERIP_BIN --mtu $ETHERIP_MTU ipv4 dst 10.10.10.2 src 10.10.10.1 tap tap1 > $LOGDIR/etherip-ns1.log 2>&1 & echo \$! > $LOGDIR/etherip-ns1.pid"
-sudo ip netns exec ns2 bash -c "cd /workspaces/etherip || cd /; $ETHERIP_BIN --mtu $ETHERIP_MTU ipv4 dst 10.10.10.1 src 10.10.10.2 tap tap2 > $LOGDIR/etherip-ns2.log 2>&1 & echo \$! > $LOGDIR/etherip-ns2.pid"
+sudo ip netns exec ns1 bash -c "$ETHERIP_BIN --mtu $ETHERIP_MTU ipv4 dst 10.10.10.2 src 10.10.10.1 tap tap1 > $LOGDIR/etherip-ns1.log 2>&1 & echo \$! > $LOGDIR/etherip-ns1.pid"
+sudo ip netns exec ns2 bash -c "$ETHERIP_BIN --mtu $ETHERIP_MTU ipv4 dst 10.10.10.1 src 10.10.10.2 tap tap2 > $LOGDIR/etherip-ns2.log 2>&1 & echo \$! > $LOGDIR/etherip-ns2.pid"
 
 sleep 1
 
@@ -62,8 +62,8 @@ if [ -f "$LOGDIR/etherip-ns2.pid" ]; then sudo kill "$(cat "$LOGDIR/etherip-ns2.
 ETHERIP_MTU_V6="${ETHERIP_MTU_V6:-1500}"
 echo "Starting IPv6 etherip instances (mtu=$ETHERIP_MTU_V6)"
 # use outer veth IPv6 addresses for encapsulation
-sudo ip netns exec ns1 bash -c "cd /workspaces/etherip || cd /; $ETHERIP_BIN --mtu $ETHERIP_MTU_V6 ipv6 dst 2001:db8:1::2 src 2001:db8:1::1 tap tap1 > $LOGDIR/etherip-ns1-v6.log 2>&1 & echo \$! > $LOGDIR/etherip-ns1-v6.pid"
-sudo ip netns exec ns2 bash -c "cd /workspaces/etherip || cd /; $ETHERIP_BIN --mtu $ETHERIP_MTU_V6 ipv6 dst 2001:db8:1::1 src 2001:db8:1::2 tap tap2 > $LOGDIR/etherip-ns2-v6.log 2>&1 & echo \$! > $LOGDIR/etherip-ns2-v6.pid"
+sudo ip netns exec ns1 bash -c "$ETHERIP_BIN --mtu $ETHERIP_MTU_V6 ipv6 dst 2001:db8:1::2 src 2001:db8:1::1 tap tap1 > $LOGDIR/etherip-ns1-v6.log 2>&1 & echo \$! > $LOGDIR/etherip-ns1-v6.pid"
+sudo ip netns exec ns2 bash -c "$ETHERIP_BIN --mtu $ETHERIP_MTU_V6 ipv6 dst 2001:db8:1::1 src 2001:db8:1::2 tap tap2 > $LOGDIR/etherip-ns2-v6.log 2>&1 & echo \$! > $LOGDIR/etherip-ns2-v6.pid"
 
 sleep 1
 

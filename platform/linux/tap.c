@@ -15,7 +15,7 @@
 #include "tap.h"
 #include "etherip.h"
 
-extern int tap_open(int *fd, char name[], int mtu, int domain){
+extern int tap_open(int *fd, char name[], int mtu){
     *fd = open("/dev/net/tun", O_RDWR);
     
     if(*fd == -1){
@@ -34,11 +34,19 @@ extern int tap_open(int *fd, char name[], int mtu, int domain){
     }
 
     ifr.ifr_mtu = mtu;
-    if(ioctl(socket(AF_INET, SOCK_DGRAM, 0), SIOCSIFMTU, &ifr) == -1){
-        fprintf(stderr, "[ERROR]: Failed to SIOCSIFMTU: %s\n", strerror(errno));
+    int ioctl_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if(ioctl_fd == -1){
+        fprintf(stderr, "[ERROR]: Failed to open ioctl socket: %s\n", strerror(errno));
         close(*fd);
         return -1;
     }
+    if(ioctl(ioctl_fd, SIOCSIFMTU, &ifr) == -1){
+        fprintf(stderr, "[ERROR]: Failed to SIOCSIFMTU: %s\n", strerror(errno));
+        close(ioctl_fd);
+        close(*fd);
+        return -1;
+    }
+    close(ioctl_fd);
     
     return 0;
 }

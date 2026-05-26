@@ -197,7 +197,7 @@ int main(int argc, char **argv){
         return 0;
     }
 
-    int domain;
+    int domain = AF_UNSPEC;
     char src[IPv6_ADDR_STR_LEN];
     char dst[IPv6_ADDR_STR_LEN];
     char tap_name[IFNAMSIZ];
@@ -220,15 +220,24 @@ int main(int argc, char **argv){
         }
         if(strcmp(argv[i], "dst") == 0){
             required_arg_cnt++;
-            strcpy(dst, argv[++i]);
+            if(snprintf(dst, sizeof(dst), "%s", argv[++i]) >= (int)sizeof(dst)){
+                fprintf(stderr, "[ERROR]: dst is too long\n");
+                return 1;
+            }
         }
         if(strcmp(argv[i], "src") == 0){
             required_arg_cnt++;
-            strcpy(src, argv[++i]);
+            if(snprintf(src, sizeof(src), "%s", argv[++i]) >= (int)sizeof(src)){
+                fprintf(stderr, "[ERROR]: src is too long\n");
+                return 1;
+            }
         }
         if(strcmp(argv[i], "tap") == 0){
             required_arg_cnt++;
-            strcpy(tap_name, argv[++i]);
+            if(snprintf(tap_name, sizeof(tap_name), "%s", argv[++i]) >= (int)sizeof(tap_name)){
+                fprintf(stderr, "[ERROR]: tap name is too long\n");
+                return 1;
+            }
         }
         if(strcmp(argv[i], "--mtu") == 0){
             mtu = atoi(argv[++i]);
@@ -245,7 +254,7 @@ int main(int argc, char **argv){
     }
 
     // init
-    if(tap_open(&tap_fd, tap_name, mtu, domain) == -1){
+    if(tap_open(&tap_fd, tap_name, mtu) == -1){
         // Failed to tap_open()
         return 0;
     }
@@ -278,6 +287,7 @@ int main(int argc, char **argv){
     
     if(sock_open(&sock_fd, domain, &src_addr, sock_len) == -1){
         // Failed to sock_open()
+        tap_close(tap_fd);
         return 0;
     }
     
