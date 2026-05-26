@@ -103,7 +103,7 @@ static void *recv_handlar(void *args){
             write_len = rlen - ETHERIP_HEADER_LEN - ip_hdr_len;
         }
         else if(domain == AF_INET6){
-            if((size_t)rlen < sizeof(struct ip6_hdr) + sizeof(struct etherip_hdr)){
+            if((size_t)rlen < sizeof(struct etherip_hdr)){
                 // too short
                 continue;
             }
