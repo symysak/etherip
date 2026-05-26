@@ -120,7 +120,10 @@ static void *recv_handlar(void *args){
             hdr = (struct etherip_hdr *)(&buffer);
             write_len = rlen - ETHERIP_HEADER_LEN;
         }
-
+        else{
+            // unknown domain
+            return NULL;
+        }
 
         // version check
         version = hdr->hdr_1st >> 4;
@@ -169,10 +172,15 @@ static void *send_handlar(void *args){
         hdr->hdr_1st = ETHERIP_VERSION << 4;
         hdr->hdr_2nd = 0;
         memcpy(hdr+1, buffer, rlen);
-        if(domain == AF_INET)
+        if(domain == AF_INET){
             dst_addr_len = sizeof( *(struct sockaddr_in *)dst_addr );
+        }
         else if(domain == AF_INET6){
             dst_addr_len = sizeof( *(struct sockaddr_in6 *)dst_addr );
+        }
+        else{
+            // unknown domain
+            return NULL;
         }
         sock_write(sock_fd, frame, sizeof(struct etherip_hdr) + rlen, dst_addr, dst_addr_len);
 
@@ -261,6 +269,11 @@ int main(int argc, char **argv){
         inet_pton(AF_INET6, src, &src_addr6->sin6_addr.s6_addr);
         src_addr6->sin6_port = htons(ETHERIP_PROTO_NUM);
         sock_len = sizeof(*src_addr6);
+    }
+    else {
+        // unknown domain
+        fprintf(stderr, "[ERROR]: Unknown domain\n");
+        return 1;
     }
     
     if(sock_open(&sock_fd, domain, &src_addr, sock_len) == -1){
