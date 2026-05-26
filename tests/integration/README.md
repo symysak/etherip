@@ -26,6 +26,8 @@ sudo tests/integration/run_netns_tests.sh
 
 Notes
 - The ping test uses `ping -M do -s 1472` to send an inner IP packet of 1500 bytes (20B IP + 8B ICMP + 1472 payload = 1500). DF is set on the inner packet; fragmentation of the outer (encapsulated) packet is allowed.
+ - The ping test uses `ping -M do -s 1472` to send an inner IP packet of 1500 bytes (20B IP + 8B ICMP + 1472 payload = 1500). DF is set on the inner packet; fragmentation of the outer (encapsulated) packet is allowed.
+ - IPv6 test: The script also runs an IPv6 mode test after the IPv4 test. It uses `ping -6 -M do -s 1452` to produce a 1500-byte inner IPv6 packet (40B IPv6 header + 8B ICMPv6 + 1452 payload = 1500).
 - To point to a custom `etherip` binary path, set `ETHERIP_BIN` before running:
 ```bash
 export ETHERIP_BIN=/path/to/etherip
