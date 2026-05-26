@@ -1,0 +1,9 @@
+{
+  "features": {
+    "ghcr.io/postfinance/devcontainer-features/build-essential:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/postfinance/devcontainer-features/build-essential@sha256:96142f564ddb2174f202c992007136c0f7d53f7ea15b829bcf28d037deb7c694",
+      "integrity": "sha256:96142f564ddb2174f202c992007136c0f7d53f7ea15b829bcf28d037deb7c694"
+    }
+  }
+}
