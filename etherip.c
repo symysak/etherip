@@ -171,6 +171,9 @@ static void *send_handlar(void *args){
         hdr = (struct etherip_hdr *)frame;
         hdr->hdr_1st = ETHERIP_VERSION << 4;
         hdr->hdr_2nd = 0;
+        if((size_t)rlen > sizeof(frame) - sizeof(struct etherip_hdr)){
+            continue;
+        }
         memcpy(hdr+1, buffer, rlen);
         if(domain == AF_INET){
             dst_addr_len = sizeof( *(struct sockaddr_in *)dst_addr );
@@ -220,15 +223,15 @@ int main(int argc, char **argv){
         }
         if(strcmp(argv[i], "dst") == 0){
             required_arg_cnt++;
-            strcpy(dst, argv[++i]);
+            snprintf(dst, sizeof(dst), "%s", argv[++i]);
         }
         if(strcmp(argv[i], "src") == 0){
             required_arg_cnt++;
-            strcpy(src, argv[++i]);
+            snprintf(src, sizeof(src), "%s", argv[++i]);
         }
         if(strcmp(argv[i], "tap") == 0){
             required_arg_cnt++;
-            strcpy(tap_name, argv[++i]);
+            snprintf(tap_name, sizeof(tap_name), "%s", argv[++i]);
         }
         if(strcmp(argv[i], "--mtu") == 0){
             mtu = atoi(argv[++i]);
